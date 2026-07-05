@@ -19,7 +19,11 @@ See [docs/design.md](docs/design.md) for the architecture and the transport
 notes (WebSocket is the working default; WebTransport is present but blocked by
 a browser/library draft mismatch).
 
-# Run
+# Install
+
+* [maven](https://jitpack.io/#umjammer/vavi-awt-html5)
+
+# Usage
 
 ```
 mvn package
@@ -28,13 +32,14 @@ bin/run.sh com.example.YourApp   # any Swing app on the classpath
 # then open http://localhost:8080/
 ```
 
-# Install
-
- * [maven](https://jitpack.io/#umjammer/vavi-awt-html5)
-
 ## References
 
  * https://github.com/CaciocavalloSilano/caciocavallo
  * https://github.com/ptrd/flupke (WebTransport over HTTP/3)
  * https://teavm.org (Java → WebAssembly)
  * https://github.com/rigd-loxia/gwtx-g2d
+
+## TODO
+
+ * frame bar DnD
+ * swingset3
