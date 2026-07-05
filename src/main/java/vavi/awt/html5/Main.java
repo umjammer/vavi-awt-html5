@@ -77,17 +77,32 @@ public final class Main {
 
         new FramePump(Html5Screen.getInstance(), sessions).start();
 
+        Runtime.getRuntime().addShutdownHook(new Thread(() ->
+                System.err.println("vavi-awt-html5: shutting down"), "html5-shutdown"));
+
         System.out.println("open http://localhost:" + httpPort + "/ in a browser (transport: " + transport + ")");
 
         Method main = Class.forName(mainClass).getMethod("main", String[].class);
         Thread appThread = new Thread(() -> {
             try {
                 main.invoke(null, (Object) appArgs);
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // an app failure must not take the mirror server down
+                System.err.println("vavi-awt-html5: application main failed");
                 e.printStackTrace();
-                System.exit(2);
             }
         }, "app-main");
         appThread.start();
+
+        // keep the JVM (and the servers) alive independently of the app's
+        // own threads and window lifecycle
+        Thread keepAlive = new Thread(() -> {
+            try {
+                new java.util.concurrent.CountDownLatch(1).await();
+            } catch (InterruptedException ignored) {
+            }
+        }, "html5-keepalive");
+        keepAlive.setDaemon(false);
+        keepAlive.start();
     }
 }

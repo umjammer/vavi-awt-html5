@@ -114,8 +114,7 @@ public class Http3WebTransportServer {
             public void onHello(int version, int viewW, int viewH) throws IOException {
                 var bounds = Html5Screen.getInstance().getBounds();
                 writer.writeInit(bounds.width, bounds.height);
-                // full repaint for the new client, shipped by the frame pump
-                Html5Screen.getInstance().getDamageTracker().damageAll();
+                // the frame pump detects the new session and sends a full frame
                 sessions.attach(writer);
             }
 

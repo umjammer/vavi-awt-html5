@@ -73,7 +73,7 @@ public class WebSocketTransportServer extends WebSocketServer {
             public void onHello(int version, int viewW, int viewH) throws IOException {
                 var bounds = Html5Screen.getInstance().getBounds();
                 writer.writeInit(bounds.width, bounds.height);
-                Html5Screen.getInstance().getDamageTracker().damageAll();
+                // the frame pump detects the new session and sends a full frame
                 sessions.attach(writer);
             }
 

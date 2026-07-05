@@ -25,15 +25,15 @@ import javax.imageio.ImageIO;
 import com.github.caciocavallosilano.cacio.peer.WindowClippedGraphics;
 import com.github.caciocavallosilano.cacio.peer.managed.FullScreenWindowFactory;
 import com.github.caciocavallosilano.cacio.peer.managed.PlatformScreen;
-import vavi.awt.html5.render.DamageTracker;
-import vavi.awt.html5.render.TrackingGraphics2D;
 
 
 /**
  * The virtual screen: a {@link BufferedImage} framebuffer all AWT windows
- * render into. Every {@link Graphics2D} handed to AWT is wrapped in a
- * {@link TrackingGraphics2D} so draw operations feed the {@link DamageTracker},
- * which the frame pump later converts into blit updates for the browser.
+ * render into. The frame pump ({@code vavi.awt.html5.render.FramePump})
+ * detects changes by diffing this framebuffer, so no draw interception is
+ * needed here — the graphics handed to AWT is the plain framebuffer
+ * graphics, wrapped only for window clipping (matching cacio's own CTC
+ * reference backend).
  *
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (nsano)
  * @version 0.00 2026-07-05 nsano initial version <br>
@@ -51,12 +51,9 @@ public class Html5Screen implements PlatformScreen {
 
     private final BufferedImage screenBuffer;
 
-    private final DamageTracker damageTracker;
-
     private Html5Screen() {
         Dimension d = FullScreenWindowFactory.getScreenDimension();
         screenBuffer = new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_ARGB);
-        damageTracker = new DamageTracker(new Rectangle(0, 0, d.width, d.height));
     }
 
     @Override
@@ -77,7 +74,6 @@ public class Html5Screen implements PlatformScreen {
     @Override
     public Graphics2D getClippedGraphics(Color fg, Color bg, Font f, List<Rectangle> clipRects) {
         Graphics2D g2d = (Graphics2D) screenBuffer.getGraphics();
-        g2d = new TrackingGraphics2D(g2d, damageTracker);
         if (clipRects != null && !clipRects.isEmpty()) {
             Area a = new Area(getBounds());
             for (Rectangle clip : clipRects) {
@@ -91,10 +87,6 @@ public class Html5Screen implements PlatformScreen {
     /** the shared framebuffer; read by the frame pump and the robot peer */
     public BufferedImage getFramebuffer() {
         return screenBuffer;
-    }
-
-    public DamageTracker getDamageTracker() {
-        return damageTracker;
     }
 
     public int[] getRGBPixels(Rectangle bounds) {

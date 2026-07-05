@@ -14,6 +14,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -42,21 +43,26 @@ public final class DemoApp {
             JTextArea log = new JTextArea();
             log.setEditable(false);
 
+            JSlider slider = new JSlider(0, 100, 25);
             button.addActionListener(e -> log.append("button clicked, text: " + field.getText() + "\n"));
             field.addActionListener(e -> {
                 log.append("entered: " + field.getText() + "\n");
                 field.setText("");
             });
+            slider.addChangeListener(e -> log.append("slider = " + slider.getValue() + "\n"));
             new Timer(1000, e -> clock.setText(java.time.LocalTime.now().withNano(0).toString())).start();
 
             top.add(clock);
             top.add(field);
             top.add(button);
+            top.add(slider);
             frame.getContentPane().add(top, BorderLayout.NORTH);
             frame.getContentPane().add(new JScrollPane(log), BorderLayout.CENTER);
             frame.setSize(640, 480);
             frame.setLocation(100, 80);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            // dispose rather than exit: closing the mirrored window must not
+            // take the mirror server down with it
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setVisible(true);
         });
     }

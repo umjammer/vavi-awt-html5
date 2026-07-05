@@ -13,7 +13,6 @@ import java.awt.event.MouseEvent;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
@@ -112,15 +110,6 @@ class Html5ToolkitTest {
         try (FileOutputStream out = new FileOutputStream("target/snapshot.png")) {
             Html5Screen.getInstance().snapshotPng(out);
         }
-
-        List<Rectangle> rects = Html5Screen.getInstance().getDamageTracker().flushRects();
-        assertFalse(rects.isEmpty(), "no damage tracked");
-        Rectangle union = rects.getFirst();
-        for (Rectangle r : rects) {
-            union = union.union(r);
-        }
-        assertTrue(union.intersects(new Rectangle(50, 50, 400, 300)),
-                "damage " + union + " does not cover the frame");
     }
 
     @Test

@@ -22,11 +22,14 @@ window path: all AWT windows are composited into one virtual screen
 (`Html5Screen`) backed by a `BufferedImage`. Screen size comes from
 `cacio.managed.screensize` (default 1024x768).
 
-`TrackingGraphics2D` wraps every `Graphics2D` handed to AWT and records the
-device-space bounding box of each draw op into `DamageTracker`. `FramePump`
-turns accumulated damage into PNG `BLIT` messages ~30 times per second.
-`FrameDiffer` is a tile-hash full-frame diff kept as a correctness net
-(`-Dvavi.awt.html5.diff=full`) and used in tests.
+`FramePump` detects changes by diffing the framebuffer against the previously
+sent frame in 64-pixel tiles ~30 times per second, and ships changed regions as
+PNG `BLIT` messages. Framebuffer diffing is used deliberately rather than
+intercepting draw operations: cacio composits windows through
+`SunGraphics2D.constrain()`, whose offset is not visible in the graphics
+transform, so device coordinates cannot be reconstructed reliably from a
+`Graphics2D` wrapper — diffing sees the real pixels wherever they land. A new
+browser connection is detected by the pump, which then sends a full frame.
 
 Input arrives as protocol messages, is decoded by `InputEventDecoder` into
 `EventData` on `Html5EventSource`, and the cacio managed container synthesizes
@@ -93,5 +96,8 @@ bin/run.sh com.example.YourApp   # or any Swing app on the classpath
 ## Scope (v1)
 
 Single session (one browser mirrors one app instance); whole-desktop
-framebuffer with decorated windows; `COPY_AREA`, multi-session, browser-driven
-resize, clipboard and cursor shapes are left for later.
+framebuffer with decorated windows. Mouse (including press-drag-release, so
+sliders, scrollbars, text selection and window moves work), wheel and keyboard
+are supported. `COPY_AREA`, multi-session, browser-driven resize, clipboard,
+cursor shapes and full `java.awt.dnd` data transfer (needs a
+`DragSourceContextPeer`, currently null) are left for later.
