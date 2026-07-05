@@ -104,6 +104,38 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-maven-plugin</artifactId>
+        <version>${teavm.version}</version>
+        <executions>
+          <execution>
+            <id>client-wasm</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <mainClass>vavi.awt.html5.client.ClientMain</mainClass>
+              <targetType>WEBASSEMBLY_GC</targetType>
+              <targetDirectory>${project.build.outputDirectory}/web</targetDirectory>
+              <targetFileName>client.wasm</targetFileName>
+              <optimizationLevel>ADVANCED</optimizationLevel>
+            </configuration>
+          </execution>
+          <execution>
+            <id>client-wasm-runtime</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>copy-webassembly-gc-runtime</goal>
+            </goals>
+            <configuration>
+              <targetDirectory>${project.build.outputDirectory}/web</targetDirectory>
+              <runtimeFileName>client.wasm-runtime.js</runtimeFileName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.1</version>
@@ -185,6 +217,12 @@
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-jso-apis</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-classlib</artifactId>
       <version>${teavm.version}</version>
       <scope>provided</scope>
     </dependency>

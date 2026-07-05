@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>vavi-awt-html5</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1e1e1e; }
+  body { display: flex; flex-direction: column; align-items: center; }
+  canvas { outline: none; margin-top: 8px; background: #000; }
+  #status { color: #999; font: 12px monospace; padding: 4px; }
+</style>
+</head>
+<body>
+<canvas id="screen" width="1024" height="768" tabindex="0"></canvas>
+<div id="status">loading...</div>
+<script>
+  window.WT_URL = '${WT_URL}';
+  window.CERT_HASH = '${CERT_HASH_B64}';
+</script>
+<script src="client.wasm-runtime.js"></script>
+<script type="module">
+  try {
+    const teavm = await TeaVM.wasmGC.load("client.wasm");
+    teavm.exports.main([]);
+  } catch (e) {
+    document.getElementById("status").textContent = "wasm load failed: " + e;
+    throw e;
+  }
+</script>
+</body>
+</html>

@@ -6,7 +6,6 @@
 
 package vavi.awt.html5.transport;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,10 +61,11 @@ public class Http3WebTransportServer {
 
         serverConnector = ServerConnector.builder()
                 .withPort(port)
-                .withCertificate(new FileInputStream(cert.certPem().toFile()),
-                                 new FileInputStream(cert.keyPem().toFile()))
+                .withKeyStore(cert.keyStore(), cert.alias(), cert.password())
                 .withConfiguration(config)
-                .withLogger(new tech.kwik.core.log.NullLogger())
+                .withLogger(Boolean.getBoolean("vavi.awt.html5.debug")
+                        ? new tech.kwik.core.log.SysOutLogger()
+                        : new tech.kwik.core.log.NullLogger())
                 .build();
 
         HttpRequestHandler notFoundHandler = (request, response) -> {
