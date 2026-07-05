@@ -15,6 +15,7 @@ import vavi.awt.html5.transport.CertManager;
 import vavi.awt.html5.transport.Http3WebTransportServer;
 import vavi.awt.html5.transport.SessionManager;
 import vavi.awt.html5.transport.StaticHttpServer;
+import vavi.awt.html5.transport.WebSocketTransportServer;
 
 
 /**
@@ -46,24 +47,37 @@ public final class Main {
 
         int httpPort = Integer.getInteger("vavi.awt.html5.httpPort", 8080);
         int wtPort = Integer.getInteger("vavi.awt.html5.wtPort", 4433);
+        int wsPort = Integer.getInteger("vavi.awt.html5.wsPort", 4434);
+        // "ws" (default, interoperable today) or "webtransport"
+        String transport = System.getProperty("vavi.awt.html5.transport", "ws");
         Path certDir = Path.of(System.getProperty("vavi.awt.html5.certDir",
                 System.getProperty("java.io.tmpdir") + "/vavi-awt-html5"));
 
         ToolkitInstaller.install();
 
-        CertManager.ServerCert cert = new CertManager(certDir).ensureCert();
-
         SessionManager sessions = new SessionManager();
-        Http3WebTransportServer wtServer = new Http3WebTransportServer(wtPort, cert, sessions);
-        wtServer.start();
+        String wtUrl = "";
+        String certHash = "";
+        String wsUrl = "";
 
-        String wtUrl = "https://localhost:" + wtPort + Http3WebTransportServer.PATH;
-        StaticHttpServer httpServer = new StaticHttpServer(httpPort, wtUrl, cert.sha256Base64());
+        if ("webtransport".equals(transport)) {
+            CertManager.ServerCert cert = new CertManager(certDir).ensureCert();
+            Http3WebTransportServer wtServer = new Http3WebTransportServer(wtPort, cert, sessions);
+            wtServer.start();
+            wtUrl = "https://localhost:" + wtPort + Http3WebTransportServer.PATH;
+            certHash = cert.sha256Base64();
+        } else {
+            WebSocketTransportServer wsServer = new WebSocketTransportServer(wsPort, sessions);
+            wsServer.start();
+            wsUrl = "ws://localhost:" + wsPort + "/";
+        }
+
+        StaticHttpServer httpServer = new StaticHttpServer(httpPort, transport, wsUrl, wtUrl, certHash);
         httpServer.start();
 
         new FramePump(Html5Screen.getInstance(), sessions).start();
 
-        System.out.println("open http://localhost:" + httpPort + "/ in a WebTransport-capable browser");
+        System.out.println("open http://localhost:" + httpPort + "/ in a browser (transport: " + transport + ")");
 
         Method main = Class.forName(mainClass).getMethod("main", String[].class);
         Thread appThread = new Thread(() -> {

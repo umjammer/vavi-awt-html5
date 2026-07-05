@@ -63,9 +63,7 @@ public class Http3WebTransportServer {
                 .withPort(port)
                 .withKeyStore(cert.keyStore(), cert.alias(), cert.password())
                 .withConfiguration(config)
-                .withLogger(Boolean.getBoolean("vavi.awt.html5.debug")
-                        ? new tech.kwik.core.log.SysOutLogger()
-                        : new tech.kwik.core.log.NullLogger())
+                .withLogger(logger())
                 .build();
 
         HttpRequestHandler notFoundHandler = (request, response) -> {
@@ -86,6 +84,18 @@ public class Http3WebTransportServer {
         if (serverConnector != null) {
             serverConnector.close();
         }
+    }
+
+    private static tech.kwik.core.log.Logger logger() {
+        if (!Boolean.getBoolean("vavi.awt.html5.debug")) {
+            return new tech.kwik.core.log.NullLogger();
+        }
+        tech.kwik.core.log.SysOutLogger log = new tech.kwik.core.log.SysOutLogger();
+        log.logInfo(true);
+        log.logWarning(true);
+        log.logPackets(true);
+        log.logDebug(true);
+        return log;
     }
 
     private void handleSession(Session session) {

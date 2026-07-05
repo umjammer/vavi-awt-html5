@@ -207,6 +207,14 @@
       <version>${flupke.version}</version>
     </dependency>
 
+    <!-- browser transport: pure-java websocket server (fallback until browsers
+         interop with flupke's webtransport draft; see docs) -->
+    <dependency>
+      <groupId>org.java-websocket</groupId>
+      <artifactId>Java-WebSocket</artifactId>
+      <version>1.6.0</version>
+    </dependency>
+
     <!-- browser client (compiled to wasm by teavm; never needed by jar consumers) -->
     <dependency>
       <groupId>org.teavm</groupId>

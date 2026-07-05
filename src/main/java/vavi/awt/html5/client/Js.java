@@ -77,6 +77,9 @@ final class Js {
     @JSBody(params = {"bytes"}, script = "return createImageBitmap(new Blob([bytes], {type: 'image/png'}));")
     static native JSPromise<ImageBitmap> createImageBitmap(Uint8Array bytes);
 
+    @JSBody(params = {"buffer"}, script = "return new Uint8Array(buffer);")
+    static native Uint8Array asUint8Array(org.teavm.jso.typedarrays.ArrayBuffer buffer);
+
     @JSBody(params = {"name"}, script = "return window[name];")
     static native String global(String name);
 

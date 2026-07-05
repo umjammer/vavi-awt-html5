@@ -12,18 +12,23 @@ import org.teavm.jso.typedarrays.Uint8Array;
 
 
 /**
- * Builds length-prefixed protocol frames and writes them to the
- * WebTransport stream writer.
+ * Builds length-prefixed protocol frames and hands them to a transport sink
+ * (WebSocket or WebTransport stream).
  *
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (nsano)
  * @version 0.00 2026-07-05 nsano initial version <br>
  */
 class MsgSender {
 
-    private final Js.StreamWriter writer;
+    /** transport-agnostic byte sink */
+    interface ByteSink {
+        void send(Uint8Array bytes);
+    }
 
-    MsgSender(Js.StreamWriter writer) {
-        this.writer = writer;
+    private final ByteSink sink;
+
+    MsgSender(ByteSink sink) {
+        this.sink = sink;
     }
 
     private static void u16(ByteArrayOutputStream b, int v) {
@@ -46,7 +51,7 @@ class MsgSender {
         for (int i = 0; i < bytes.length; i++) {
             arr.set(i, (short) (bytes[i] & 0xff));
         }
-        writer.write(arr);
+        sink.send(arr);
     }
 
     void hello(int viewW, int viewH) {

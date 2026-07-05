@@ -6,17 +6,22 @@
 
 package vavi.awt.html5.client;
 
+import org.teavm.jso.dom.events.MessageEvent;
 import org.teavm.jso.dom.html.HTMLCanvasElement;
 import org.teavm.jso.dom.html.HTMLDocument;
 import org.teavm.jso.streams.ReadableStreamDefaultReader;
+import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.typedarrays.Int8Array;
+import org.teavm.jso.typedarrays.Uint8Array;
+import org.teavm.jso.websocket.WebSocket;
 
 
 /**
- * Browser entry point (compiled to WASM by TeaVM). Opens the WebTransport
- * session advertised by the page globals {@code WT_URL} and
- * {@code CERT_HASH}, establishes one bidirectional stream, then renders
- * incoming screen updates and forwards input events.
+ * Browser entry point (compiled to WASM by TeaVM). Opens the transport
+ * advertised by the page globals ({@code TRANSPORT} = "ws" or
+ * "webtransport"), then renders incoming screen updates and forwards input
+ * events. Both transports carry the identical length-prefixed binary
+ * protocol.
  *
  * @author <a href="mailto:umjammer@gmail.com">Naohide Sano</a> (nsano)
  * @version 0.00 2026-07-05 nsano initial version <br>
@@ -29,7 +34,48 @@ public final class ClientMain {
     public static void main(String[] args) {
         HTMLDocument document = HTMLDocument.current();
         HTMLCanvasElement canvas = (HTMLCanvasElement) document.getElementById("screen");
+        String transport = Js.global("TRANSPORT");
 
+        if ("webtransport".equals(transport)) {
+            startWebTransport(canvas, document);
+        } else {
+            startWebSocket(canvas, document);
+        }
+    }
+
+    // ---- WebSocket transport (default) ----
+
+    private static void startWebSocket(HTMLCanvasElement canvas, HTMLDocument document) {
+        String url = Js.global("WS_URL");
+        Js.status("connecting to " + url + " ...");
+        WebSocket ws = new WebSocket(url);
+        ws.setBinaryType("arraybuffer");
+
+        CanvasRenderer renderer = new CanvasRenderer(canvas);
+        FrameParser parser = new FrameParser(renderer);
+        MsgSender sender = new MsgSender(bytes -> ws.send(bytes));
+
+        ws.onOpen(e -> {
+            InputCapture.install(canvas, document, sender);
+            sender.hello(canvas.getWidth(), canvas.getHeight());
+        });
+        ws.onMessage((MessageEvent e) -> {
+            ArrayBuffer buffer = e.getDataAsArray();
+            Uint8Array u8 = Js.asUint8Array(buffer);
+            int len = u8.getLength();
+            byte[] chunk = new byte[len];
+            for (int i = 0; i < len; i++) {
+                chunk[i] = (byte) u8.get(i);
+            }
+            parser.feed(chunk, len);
+        });
+        ws.onClose(e -> Js.status("connection closed"));
+        ws.onError(e -> Js.status("connection error"));
+    }
+
+    // ---- WebTransport transport (experimental) ----
+
+    private static void startWebTransport(HTMLCanvasElement canvas, HTMLDocument document) {
         String wtUrl = Js.global("WT_URL");
         String certHash = Js.global("CERT_HASH");
         Js.status("connecting to " + wtUrl + " ...");
@@ -42,18 +88,12 @@ public final class ClientMain {
             Js.status("webtransport connect failed");
             return null;
         });
-        transport.getClosed().then(info -> {
-            Js.status("session closed");
-            return null;
-        }, error -> {
-            Js.status("session aborted");
-            return null;
-        });
     }
 
     private static void openStream(Js.WebTransport transport, HTMLCanvasElement canvas, HTMLDocument document) {
         transport.createBidirectionalStream().then(stream -> {
-            MsgSender sender = new MsgSender(stream.getWritable().getWriter());
+            Js.StreamWriter writer = stream.getWritable().getWriter();
+            MsgSender sender = new MsgSender(writer::write);
             CanvasRenderer renderer = new CanvasRenderer(canvas);
             FrameParser parser = new FrameParser(renderer);
             InputCapture.install(canvas, document, sender);

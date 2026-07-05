@@ -5,6 +5,28 @@
 
 # vavi-awt-html5
 
+Runs an unmodified AWT/Swing application on a JVM and mirrors its UI to a
+browser: an HTML5 toolkit backend renders into an off-screen framebuffer, ships
+changed regions as PNG tiles over a binary protocol, and a WebAssembly client
+(Java compiled with TeaVM) paints them to a `<canvas>` and forwards input.
+
+```
+awt/swing → Html5Toolkit (cacio-shared) → framebuffer → binary protocol
+          → WebSocket / WebTransport → TeaVM wasm canvas renderer
+```
+
+See [docs/design.md](docs/design.md) for the architecture and the transport
+notes (WebSocket is the working default; WebTransport is present but blocked by
+a browser/library draft mismatch).
+
+# Run
+
+```
+mvn package
+bin/run.sh                       # the bundled demo app
+bin/run.sh com.example.YourApp   # any Swing app on the classpath
+# then open http://localhost:8080/
+```
 
 # Install
 
@@ -12,4 +34,7 @@
 
 ## References
 
+ * https://github.com/CaciocavalloSilano/caciocavallo
+ * https://github.com/ptrd/flupke (WebTransport over HTTP/3)
+ * https://teavm.org (Java → WebAssembly)
  * https://github.com/rigd-loxia/gwtx-g2d

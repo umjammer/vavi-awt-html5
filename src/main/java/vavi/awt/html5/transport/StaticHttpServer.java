@@ -41,12 +41,16 @@ public class StaticHttpServer {
             "ico", "image/x-icon");
 
     private final int port;
+    private final String transport;
+    private final String wsUrl;
     private final String wtUrl;
     private final String certHashB64;
     private HttpServer server;
 
-    public StaticHttpServer(int port, String wtUrl, String certHashB64) {
+    public StaticHttpServer(int port, String transport, String wsUrl, String wtUrl, String certHashB64) {
         this.port = port;
+        this.transport = transport;
+        this.wsUrl = wsUrl;
         this.wtUrl = wtUrl;
         this.certHashB64 = certHashB64;
     }
@@ -82,6 +86,8 @@ public class StaticHttpServer {
             byte[] data = in.readAllBytes();
             if (path.equals("/index.html")) {
                 String html = new String(data, StandardCharsets.UTF_8)
+                        .replace("${TRANSPORT}", transport)
+                        .replace("${WS_URL}", wsUrl)
                         .replace("${WT_URL}", wtUrl)
                         .replace("${CERT_HASH_B64}", certHashB64);
                 data = html.getBytes(StandardCharsets.UTF_8);
