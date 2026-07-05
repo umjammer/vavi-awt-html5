@@ -1,0 +1,208 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>vavi</groupId>
+  <artifactId>vavi-awt-html5</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- overridable: point at a locally installed caciocavallo fork if jitpack is unavailable -->
+    <cacio.groupId>com.github.CaciocavalloSilano.caciocavallo</cacio.groupId>
+    <cacio.version>java-25-71a93cd59f-1</cacio.version>
+    <bytebuddy.version>1.18.11</bytebuddy.version>
+    <kwik.version>0.10.10</kwik.version>
+    <flupke.version>0.9.4</flupke.version>
+    <teavm.version>0.15.0</teavm.version>
+
+    <!-- exports needed to compile against sun.awt/sun.java2d internals (cacio SPI) -->
+    <awt.exports>
+      --add-exports=java.desktop/java.awt.peer=ALL-UNNAMED
+      --add-exports=java.desktop/java.awt.dnd.peer=ALL-UNNAMED
+      --add-exports=java.desktop/sun.awt=ALL-UNNAMED
+      --add-exports=java.desktop/sun.awt.datatransfer=ALL-UNNAMED
+      --add-exports=java.desktop/sun.awt.event=ALL-UNNAMED
+      --add-exports=java.desktop/sun.awt.image=ALL-UNNAMED
+      --add-exports=java.desktop/sun.font=ALL-UNNAMED
+      --add-exports=java.desktop/sun.java2d=ALL-UNNAMED
+      --add-exports=java.desktop/sun.java2d.loops=ALL-UNNAMED
+      --add-exports=java.desktop/sun.java2d.pipe=ALL-UNNAMED
+    </awt.exports>
+    <!-- opens needed at runtime for toolkit injection (ByteBuddy + reflection) -->
+    <awt.opens>
+      --add-opens=java.desktop/java.awt=ALL-UNNAMED
+      --add-opens=java.desktop/sun.awt=ALL-UNNAMED
+      --add-opens=java.desktop/sun.java2d=ALL-UNNAMED
+      --add-opens=java.desktop/sun.font=ALL-UNNAMED
+      --add-opens=java.base/java.util=ALL-UNNAMED
+      --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
+    </awt.opens>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.12.1</version>
+        <configuration>
+          <!-- source/target instead of release: javac rejects add-exports of JDK internals under - -release -->
+          <source>25</source>
+          <target>25</target>
+          <compilerArgs>
+            <arg>--add-exports=java.desktop/java.awt.peer=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/java.awt.dnd.peer=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.awt=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.awt.datatransfer=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.awt.event=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.awt.image=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.font=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.java2d=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.java2d.loops=ALL-UNNAMED</arg>
+            <arg>--add-exports=java.desktop/sun.java2d.pipe=ALL-UNNAMED</arg>
+          </compilerArgs>
+          <excludes>
+            <exclude>vavi/awt/html5/client/**</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <!-- browser client sources: plain Java (no JDK internals), compiled for TeaVM -->
+          <execution>
+            <id>compile-client</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>21</release>
+              <source combine.self="override"/>
+              <target combine.self="override"/>
+              <compilerArgs combine.self="override"/>
+              <excludes combine.self="override"/>
+              <includes>
+                <include>vavi/awt/html5/client/**</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <argLine>
+            -Djava.util.logging.config.file=${project.build.testOutputDirectory}/logging.properties
+            -XX:+EnableDynamicAgentLoading
+            -Djdk.attach.allowAttachSelf=true
+            ${awt.exports}
+            ${awt.opens}
+          </argLine>
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>vavi.awt.html5.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <repositories>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>6.0.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.github.umjammer</groupId>
+      <artifactId>vavi-commons</artifactId>
+      <version>1.1.17</version>
+    </dependency>
+
+    <!-- AWT backend SPI (CaciocavalloSilano fork, java-25 line) -->
+    <dependency>
+      <groupId>${cacio.groupId}</groupId>
+      <artifactId>cacio-shared</artifactId>
+      <version>${cacio.version}</version>
+    </dependency>
+
+    <!-- toolkit installation on JDK 25 (GraphicsEnvironment redefinition) -->
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <version>${bytebuddy.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <version>${bytebuddy.version}</version>
+    </dependency>
+
+    <!-- WebTransport over HTTP/3, pure java -->
+    <dependency>
+      <groupId>tech.kwik</groupId>
+      <artifactId>kwik</artifactId>
+      <version>${kwik.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>tech.kwik</groupId>
+      <artifactId>flupke</artifactId>
+      <version>${flupke.version}</version>
+    </dependency>
+
+    <!-- browser client (compiled to wasm by teavm; never needed by jar consumers) -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-jso</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-jso-apis</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-commons</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
