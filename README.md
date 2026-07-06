@@ -5,6 +5,8 @@
 
 # vavi-awt-html5
 
+<img alt="sample" src="src/test/resources/swingset2.png" width="320" /> &nbsp;&nbsp; SwingSet.jar on a browser.
+
 Runs an unmodified AWT/Swing application on a JVM and mirrors its UI to a
 browser: an HTML5 toolkit backend renders into an off-screen framebuffer, ships
 changed regions as PNG tiles over a binary protocol, and a WebAssembly client
@@ -25,10 +27,11 @@ a browser/library draft mismatch).
 
 # Usage
 
-```
-mvn package
-bin/run.sh                       # the bundled demo app
-bin/run.sh com.example.YourApp   # any Swing app on the classpath
+```shell
+$ mvn package
+$ bin/run.sh                       # the bundled demo app
+$ bin/run.sh com.example.YourApp   # any Swing app on the classpath OR
+$ bin/run.sh YourApp.jar           # any Swing app in the jar
 # then open http://localhost:8080/
 ```
 
@@ -41,5 +44,6 @@ bin/run.sh com.example.YourApp   # any Swing app on the classpath
 
 ## TODO
 
- * frame bar DnD
- * swingset3
+ * ~~frame bar DnD~~
+ * ~~swingset2~~
+ * logging

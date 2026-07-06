@@ -102,15 +102,22 @@ public class FramePump extends Thread {
         lastWriter = writer;
 
         if (newSession || prev == null || prev.length != cur.length) {
-            // first frame for this connection: send the whole screen
+            // first frame for this connection: send the whole screen; any
+            // pending copy hints are subsumed by the full frame
+            screen.clearCopyHints();
             prev = cur.clone();
             sendBlit(writer, 0, 0, w, h, prev);
             writer.writeFrameEnd(frameSeq++);
             return;
         }
 
+        // apply pending block moves (e.g. window drags) as COPY_AREA before
+        // diffing: the client reuses pixels it already has, and prev is kept in
+        // lock-step so the diff below blits only the residual (correctness net)
+        int copies = applyCopyHints(writer, w, h);
+
         List<Rectangle> dirty = diffTiles(prev, cur, w, h);
-        if (dirty.isEmpty()) {
+        if (dirty.isEmpty() && copies == 0) {
             return;
         }
         for (Rectangle r : dirty) {
@@ -119,7 +126,51 @@ public class FramePump extends Thread {
         }
         writer.writeFrameEnd(frameSeq++);
         if (Boolean.getBoolean("vavi.awt.html5.debug")) {
-            logger.info("frame " + (frameSeq - 1) + ": " + dirty.size() + " region(s)");
+            logger.info("frame " + (frameSeq - 1) + ": " + copies + " copy(ies), " + dirty.size() + " region(s)");
+        }
+    }
+
+    /**
+     * Drains pending copyArea hints and, for each, ships a {@code COPY_AREA}
+     * and mirrors the same shift into {@link #prev}. Both the source and the
+     * destination are clipped to the framebuffer so the wire values stay in
+     * range and no out-of-bounds pixels are touched.
+     */
+    private int applyCopyHints(MessageWriter writer, int w, int h) throws IOException {
+        int sent = 0;
+        CopyAreaUpdate c;
+        while ((c = screen.pollCopyHint()) != null) {
+            int dx = c.dx();
+            int dy = c.dy();
+            if (dx < Short.MIN_VALUE || dx > Short.MAX_VALUE
+                    || dy < Short.MIN_VALUE || dy > Short.MAX_VALUE) {
+                continue;
+            }
+            // clip source so that both it and (source + delta) lie on screen
+            int sx0 = Math.max(Math.max(0, c.x()), -dx);
+            int sy0 = Math.max(Math.max(0, c.y()), -dy);
+            int sx1 = Math.min(Math.min(w, c.x() + c.width()), w - dx);
+            int sy1 = Math.min(Math.min(h, c.y() + c.height()), h - dy);
+            if (sx1 <= sx0 || sy1 <= sy0) {
+                continue;
+            }
+            int cw = sx1 - sx0;
+            int ch = sy1 - sy0;
+            copyRegion(prev, w, sx0, sy0, cw, ch, dx, dy);
+            writer.writeCopyArea(sx0, sy0, cw, ch, dx, dy);
+            sent++;
+        }
+        return sent;
+    }
+
+    /** overlap-safe copy of a rectangle within an ARGB buffer, shifted by (dx, dy) */
+    private static void copyRegion(int[] buf, int stride, int x, int y, int w, int h, int dx, int dy) {
+        int[] tmp = new int[w * h];
+        for (int row = 0; row < h; row++) {
+            System.arraycopy(buf, (y + row) * stride + x, tmp, row * w, w);
+        }
+        for (int row = 0; row < h; row++) {
+            System.arraycopy(tmp, row * w, buf, (y + dy + row) * stride + (x + dx), w);
         }
     }
 
