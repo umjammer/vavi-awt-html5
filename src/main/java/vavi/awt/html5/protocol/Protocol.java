@@ -16,7 +16,7 @@ package vavi.awt.html5.protocol;
  * <pre>
  * INIT       u16 version, u16 width, u16 height
  * BLIT       u16 x, u16 y, u16 w, u16 h, u32 pngLen, byte[pngLen]
- * COPY_AREA  u16 x, u16 y, u16 w, u16 h, s16 dx, s16 dy   (reserved)
+ * COPY_AREA  u16 x, u16 y, u16 w, u16 h, s16 dx, s16 dy
  * FRAME_END  u32 frameSeq
  * RESIZE     u16 width, u16 height
  * PONG       u32 echo

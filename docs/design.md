@@ -35,6 +35,25 @@ Input arrives as protocol messages, is decoded by `InputEventDecoder` into
 `EventData` on `Html5EventSource`, and the cacio managed container synthesizes
 the derived events (enter/exit/click/focus/window).
 
+`Html5EventSource` also intercepts a left-button press-drag on a decorated
+window's title bar and moves the window itself. cacio draws L&F decorations on
+an internal proxy window whose peer `setBounds` is a no-op, so its built-in
+`MetalRootPaneUI` title-bar drag moves nothing; instead we hit-test the title
+bar (top inset minus any menu bar, excluding the resize border) and drive
+`Window.setLocation` on the real `Frame`/`Dialog`. The initial press is still
+forwarded so activation/focus behave normally; the drag and release are
+consumed. Each drag step also posts a `COPY_AREA` hint (see below).
+
+`COPY_AREA` is an optimization: a title-bar drag shifts a whole window block by
+a small delta every frame, which would otherwise re-encode the window as a PNG
+each tick. `Html5EventSource.hintCopyArea` queues the block move; the
+`FramePump` drains hints at the top of a tick, ships a `COPY_AREA` (the browser
+does a canvas self-copy of pixels it already has) and mirrors the same shift
+into its `prev` buffer. Because `prev` is kept in lock-step with everything the
+client is told, the diff that follows blits only the residual (the vacated
+background, newly exposed edges) — an inaccurate hint costs a few extra blits,
+never correctness.
+
 ### Installation on JDK 25
 
 JDK 25 ignores the `awt.toolkit` / `java.awt.graphicsenv` system properties.
@@ -50,8 +69,9 @@ injected into the bootstrap classloader, and `Toolkit.toolkit` /
 
 Binary, big-endian, length-prefixed: `u32 length, u8 opcode, body`. Unknown
 opcodes are skipped, so it is forward compatible. Server → client: `INIT`,
-`BLIT` (PNG of a rectangle), `COPY_AREA` (reserved), `FRAME_END`, `RESIZE`,
-`PONG`. Client → server: `HELLO`, `MOUSE`, `WHEEL`, `KEY`, `RESIZE`, `PING`.
+`BLIT` (PNG of a rectangle), `COPY_AREA` (shift a rectangle already on the
+client canvas by `dx, dy`), `FRAME_END`, `RESIZE`, `PONG`. Client → server:
+`HELLO`, `MOUSE`, `WHEEL`, `KEY`, `RESIZE`, `PING`.
 See `vavi.awt.html5.protocol.Protocol`. The same framing is used on both
 transports; the browser client carries its own mirror of the constants so the
 TeaVM-compiled code stays independent of the server sources.
@@ -90,14 +110,19 @@ Two transports implement the same protocol; select with
 mvn package
 bin/run.sh                       # runs vavi.awt.html5.demo.DemoApp
 bin/run.sh com.example.YourApp   # or any Swing app on the classpath
+bin/run.sh path/to/app.jar       # a runnable jar (Main-Class from its manifest)
 # open http://localhost:8080/
 ```
+
+When the first argument ends in `.jar`, `run.sh` reads its `Main-Class` from the
+manifest and adds the jar to the classpath.
 
 ## Scope (v1)
 
 Single session (one browser mirrors one app instance); whole-desktop
 framebuffer with decorated windows. Mouse (including press-drag-release, so
-sliders, scrollbars, text selection and window moves work), wheel and keyboard
-are supported. `COPY_AREA`, multi-session, browser-driven resize, clipboard,
-cursor shapes and full `java.awt.dnd` data transfer (needs a
-`DragSourceContextPeer`, currently null) are left for later.
+sliders, scrollbars, text selection work), wheel and keyboard are supported.
+Windows move by title-bar drag, and the block move is sent as `COPY_AREA`.
+Multi-session, browser-driven resize, clipboard, cursor shapes and full
+`java.awt.dnd` data transfer (needs a `DragSourceContextPeer`, currently null)
+are left for later.

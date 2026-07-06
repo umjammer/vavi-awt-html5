@@ -19,12 +19,16 @@ import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.imageio.ImageIO;
 
 import com.github.caciocavallosilano.cacio.peer.WindowClippedGraphics;
 import com.github.caciocavallosilano.cacio.peer.managed.FullScreenWindowFactory;
 import com.github.caciocavallosilano.cacio.peer.managed.PlatformScreen;
+
+import vavi.awt.html5.render.CopyAreaUpdate;
 
 
 /**
@@ -51,9 +55,47 @@ public class Html5Screen implements PlatformScreen {
 
     private final BufferedImage screenBuffer;
 
+    /**
+     * Pending copyArea hints (framebuffer/device coordinates) produced by
+     * cheap block moves such as a title-bar window drag. The frame pump
+     * drains these and turns them into {@code COPY_AREA} messages so the
+     * browser reuses pixels it already has instead of receiving a fresh PNG.
+     * Bounded: if no browser is attached the pump does not drain, so old
+     * hints are dropped rather than accumulated without limit.
+     */
+    private final Queue<CopyAreaUpdate> copyHints = new ConcurrentLinkedQueue<>();
+    private static final int MAX_COPY_HINTS = 256;
+
     private Html5Screen() {
         Dimension d = FullScreenWindowFactory.getScreenDimension();
         screenBuffer = new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_ARGB);
+    }
+
+    /**
+     * Records a block move so the frame pump can emit it as a {@code COPY_AREA}
+     * optimization. Coordinates are in framebuffer space; the region is the
+     * source rectangle and {@code (dx, dy)} the shift. Callers may hint freely:
+     * the pump's diff is the safety net, so an inaccurate hint only costs a few
+     * extra blits, never correctness.
+     */
+    public void hintCopyArea(int x, int y, int width, int height, int dx, int dy) {
+        if (width <= 0 || height <= 0 || (dx == 0 && dy == 0)) {
+            return;
+        }
+        if (copyHints.size() >= MAX_COPY_HINTS) {
+            copyHints.poll();
+        }
+        copyHints.add(new CopyAreaUpdate(x, y, width, height, dx, dy));
+    }
+
+    /** removes and returns the next pending copyArea hint, or null if none */
+    public CopyAreaUpdate pollCopyHint() {
+        return copyHints.poll();
+    }
+
+    /** drops all pending copyArea hints (e.g. when sending a full frame) */
+    public void clearCopyHints() {
+        copyHints.clear();
     }
 
     @Override
