@@ -19,6 +19,10 @@ package vavi.awt.html5.protocol;
  * COPY_AREA  u16 x, u16 y, u16 w, u16 h, s16 dx, s16 dy
  * FRAME_END  u32 frameSeq
  * RESIZE     u16 width, u16 height
+ * AUDIO      u8 streamId, u32 sampleRate, u8 channels, u32 pcmLen,
+ *            byte[pcmLen] (s16 big-endian interleaved PCM; the format rides
+ *            in every chunk so a browser that connects mid-stream can join)
+ * AUDIO_STOP u8 streamId (stream ended; the client drops its cursor state)
  * PONG       u32 echo
  * </pre>
  *
@@ -51,6 +55,8 @@ public final class Protocol {
     public static final int OP_COPY_AREA = 0x03;
     public static final int OP_FRAME_END = 0x04;
     public static final int OP_RESIZE = 0x05;
+    public static final int OP_AUDIO = 0x06;
+    public static final int OP_AUDIO_STOP = 0x07;
     public static final int OP_PONG = 0x0e;
 
     // client -> server

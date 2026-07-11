@@ -17,12 +17,14 @@ package vavi.awt.html5.client;
 class FrameParser {
 
     private final CanvasRenderer renderer;
+    private final AudioPlayer audio;
 
     private byte[] buffer = new byte[64 * 1024];
     private int size;
 
-    FrameParser(CanvasRenderer renderer) {
+    FrameParser(CanvasRenderer renderer, AudioPlayer audio) {
         this.renderer = renderer;
+        this.audio = audio;
     }
 
     void feed(byte[] chunk, int length) {
@@ -58,6 +60,11 @@ class FrameParser {
         return ((buffer[off] & 0xff) << 8) | (buffer[off + 1] & 0xff);
     }
 
+    private int u32(int off) {
+        return ((buffer[off] & 0xff) << 24) | ((buffer[off + 1] & 0xff) << 16)
+                | ((buffer[off + 2] & 0xff) << 8) | (buffer[off + 3] & 0xff);
+    }
+
     private void dispatch(int opcode, int off, int len) {
         switch (opcode) {
         case ClientProtocol.OP_INIT: {
@@ -74,8 +81,7 @@ class FrameParser {
         case ClientProtocol.OP_BLIT: {
             int x = u16(off);
             int y = u16(off + 2);
-            int pngLen = ((buffer[off + 8] & 0xff) << 24) | ((buffer[off + 9] & 0xff) << 16)
-                    | ((buffer[off + 10] & 0xff) << 8) | (buffer[off + 11] & 0xff);
+            int pngLen = u32(off + 8);
             byte[] png = new byte[pngLen];
             System.arraycopy(buffer, off + 12, png, 0, pngLen);
             renderer.blit(x, y, png);
@@ -89,6 +95,18 @@ class FrameParser {
             int dx = (short) u16(off + 8);
             int dy = (short) u16(off + 10);
             renderer.copyArea(x, y, w, h, dx, dy);
+            break;
+        }
+        case ClientProtocol.OP_AUDIO: {
+            int streamId = buffer[off] & 0xff;
+            int sampleRate = u32(off + 1);
+            int channels = buffer[off + 5] & 0xff;
+            int pcmLen = u32(off + 6);
+            audio.data(streamId, sampleRate, channels, buffer, off + 10, pcmLen);
+            break;
+        }
+        case ClientProtocol.OP_AUDIO_STOP: {
+            audio.stop(buffer[off] & 0xff);
             break;
         }
         case ClientProtocol.OP_FRAME_END:

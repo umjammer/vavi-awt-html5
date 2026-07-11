@@ -92,6 +92,22 @@ public class MessageWriter {
         frame(Protocol.OP_RESIZE, b.toByteArray());
     }
 
+    public void writeAudio(int streamId, int sampleRate, int channels, byte[] pcm, int off, int len) throws IOException {
+        ByteArrayOutputStream b = new ByteArrayOutputStream(10 + len);
+        b.write(streamId);
+        u32(b, sampleRate);
+        b.write(channels);
+        u32(b, len);
+        b.write(pcm, off, len);
+        frame(Protocol.OP_AUDIO, b.toByteArray());
+    }
+
+    public void writeAudioStop(int streamId) throws IOException {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        b.write(streamId);
+        frame(Protocol.OP_AUDIO_STOP, b.toByteArray());
+    }
+
     public void writePong(long echo) throws IOException {
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         u32(b, echo);
