@@ -151,6 +151,7 @@ public class Html5Toolkit extends CacioToolkit {
 
     @Override
     public void beep() {
+        vavi.awt.html5.sound.Html5AudioSystem.beep();
     }
 
     @Override

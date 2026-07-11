@@ -65,13 +65,42 @@ injected into the bootstrap classloader, and `Toolkit.toolkit` /
 `-XX:+EnableDynamicAgentLoading -Djdk.attach.allowAttachSelf=true` and the
 `--add-exports` / `--add-opens` set in `bin/run.sh` and the pom.
 
+## Sound
+
+`javax.sound.sampled` playback is mirrored to the browser. A playback-only
+mixer (`vavi.awt.html5.sound.Html5Mixer`, registered as a `MixerProvider`
+service) supplies `SourceDataLine` and `Clip` lines for 8/16-bit
+signed/unsigned PCM, mono or stereo, any sample rate; `Main` points the
+`javax.sound.sampled.SourceDataLine` / `.Clip` default-device properties at it,
+so an unmodified app's `AudioSystem.getSourceDataLine` / `getClip` land here
+without configuration. `Toolkit.beep()` plays a short tone through the same
+path.
+
+Written PCM is converted to one wire format (s16 big-endian interleaved) and
+shipped as `AUDIO` messages; the source format rides in every chunk so a
+browser that connects mid-stream can join. Because no real device consumes
+the data, `Html5SourceDataLine.write` paces itself: it blocks once the writer
+runs more than 250 ms ahead of wall clock, providing the back-pressure that
+streaming apps get from a hardware buffer. `Clip` plays its preloaded data
+through an internal line on a daemon thread, which makes loop timing fall out
+of the same pacing.
+
+The client schedules each chunk with Web Audio: per stream it keeps a cursor
+on the `AudioContext` clock and queues buffers back-to-back (with a ~60 ms
+initial lead), so network jitter does not become audible gaps. Browsers keep
+an `AudioContext` suspended until the page gets a user gesture (autoplay
+policy); until then chunks are dropped and the status line asks for a click,
+which one-shot listeners turn into `ctx.resume()`. Capture
+(`TargetDataLine`, i.e. a browser microphone) is out of scope for v1.
+
 ## Wire protocol
 
 Binary, big-endian, length-prefixed: `u32 length, u8 opcode, body`. Unknown
 opcodes are skipped, so it is forward compatible. Server → client: `INIT`,
 `BLIT` (PNG of a rectangle), `COPY_AREA` (shift a rectangle already on the
-client canvas by `dx, dy`), `FRAME_END`, `RESIZE`, `PONG`. Client → server:
-`HELLO`, `MOUSE`, `WHEEL`, `KEY`, `RESIZE`, `PING`.
+client canvas by `dx, dy`), `FRAME_END`, `RESIZE`, `AUDIO` (PCM chunk with
+its format), `AUDIO_STOP`, `PONG`. Client → server: `HELLO`, `MOUSE`,
+`WHEEL`, `KEY`, `RESIZE`, `PING`.
 See `vavi.awt.html5.protocol.Protocol`. The same framing is used on both
 transports; the browser client carries its own mirror of the constants so the
 TeaVM-compiled code stays independent of the server sources.
@@ -123,6 +152,8 @@ Single session (one browser mirrors one app instance); whole-desktop
 framebuffer with decorated windows. Mouse (including press-drag-release, so
 sliders, scrollbars, text selection work), wheel and keyboard are supported.
 Windows move by title-bar drag, and the block move is sent as `COPY_AREA`.
-Multi-session, browser-driven resize, clipboard, cursor shapes and full
+`javax.sound` playback and `Toolkit.beep()` reach the browser via Web Audio.
+Multi-session, browser-driven resize, clipboard, cursor shapes, microphone
+capture and full
 `java.awt.dnd` data transfer (needs a `DragSourceContextPeer`, currently null)
 are left for later.

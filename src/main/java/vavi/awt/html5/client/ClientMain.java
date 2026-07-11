@@ -52,7 +52,7 @@ public final class ClientMain {
         ws.setBinaryType("arraybuffer");
 
         CanvasRenderer renderer = new CanvasRenderer(canvas);
-        FrameParser parser = new FrameParser(renderer);
+        FrameParser parser = new FrameParser(renderer, new AudioPlayer());
         MsgSender sender = new MsgSender(ws::send);
 
         ws.onOpen(e -> {
@@ -95,7 +95,7 @@ public final class ClientMain {
             Js.StreamWriter writer = stream.getWritable().getWriter();
             MsgSender sender = new MsgSender(writer::write);
             CanvasRenderer renderer = new CanvasRenderer(canvas);
-            FrameParser parser = new FrameParser(renderer);
+            FrameParser parser = new FrameParser(renderer, new AudioPlayer());
             InputCapture.install(canvas, document, sender);
 
             sender.hello(canvas.getWidth(), canvas.getHeight());

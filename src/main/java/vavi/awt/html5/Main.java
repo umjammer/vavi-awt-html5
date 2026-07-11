@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 import vavi.awt.html5.render.FramePump;
+import vavi.awt.html5.sound.Html5AudioSystem;
+import vavi.awt.html5.sound.SessionAudioSink;
 import vavi.awt.html5.transport.CertManager;
 import vavi.awt.html5.transport.Http3WebTransportServer;
 import vavi.awt.html5.transport.SessionManager;
@@ -56,6 +58,11 @@ public final class Main {
         ToolkitInstaller.install();
 
         SessionManager sessions = new SessionManager();
+
+        // route javax.sound playback of the app to the browser
+        Html5AudioSystem.install(new SessionAudioSink(sessions));
+        Html5AudioSystem.registerDefaultProviders();
+
         String wtUrl = "";
         String certHash = "";
         String wsUrl = "";
