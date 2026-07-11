@@ -5,7 +5,7 @@
 
 # vavi-awt-html5
 
-<img alt="sample" src="src/test/resources/swingset2.png" width="320" /> &nbsp;&nbsp; SwingSet.jar on a browser.
+<img alt="sample" src="src/test/resources/swingset2.png" width="320" /> &nbsp;&nbsp; SwingSet2.jar on a browser.
 
 Runs an unmodified AWT/Swing application on a JVM and mirrors its UI to a
 browser: an HTML5 toolkit backend renders into an off-screen framebuffer, ships
@@ -24,19 +24,23 @@ See [docs/design.md](docs/design.md) for the architecture and the transport
 notes (WebSocket is the working default; WebTransport is present but blocked by
 a browser/library draft mismatch).
 
-# Install
+## Install
 
 * [maven](https://jitpack.io/#umjammer/vavi-awt-html5)
 
-# Usage
+## Usage
 
 ```shell
 $ mvn package
 $ bin/run.sh                       # the bundled demo app
-$ bin/run.sh com.example.YourApp   # any Swing app on the classpath OR
+$ bin/run.sh com.example.YourApp   # any Swing app on the classpath
 $ bin/run.sh YourApp.jar           # any Swing app in the jar
 # then open http://localhost:8080/
 ```
+
+### system properties
+
+- `cacio.managed.screensize` ... default `1024x768`
 
 ## References
 
