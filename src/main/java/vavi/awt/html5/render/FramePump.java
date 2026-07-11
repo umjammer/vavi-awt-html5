@@ -105,6 +105,9 @@ public class FramePump extends Thread {
             // first frame for this connection: send the whole screen; any
             // pending copy hints are subsumed by the full frame
             screen.clearCopyHints();
+            if (prev != null && prev.length != cur.length) {
+                writer.writeResize(w, h);
+            }
             prev = cur.clone();
             sendBlit(writer, 0, 0, w, h, prev);
             writer.writeFrameEnd(frameSeq++);

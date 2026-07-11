@@ -69,7 +69,7 @@ public final class DemoApp {
             top.add(tone);
             frame.getContentPane().add(top, BorderLayout.NORTH);
             frame.getContentPane().add(new JScrollPane(log), BorderLayout.CENTER);
-            frame.setSize(640, 480);
+            frame.setSize(800, 480);
             frame.setLocation(100, 80);
             // dispose rather than exit: closing the mirrored window must not
             // take the mirror server down with it

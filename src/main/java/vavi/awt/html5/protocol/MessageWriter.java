@@ -108,6 +108,12 @@ public class MessageWriter {
         frame(Protocol.OP_AUDIO_STOP, b.toByteArray());
     }
 
+    public void writeCursor(int cursorType) throws IOException {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        b.write(cursorType);
+        frame(Protocol.OP_CURSOR, b.toByteArray());
+    }
+
     public void writePong(long echo) throws IOException {
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         u32(b, echo);

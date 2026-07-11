@@ -168,4 +168,21 @@ class Html5ToolkitTest {
         }
         assertTrue("a".equals(textField.getText()), "typed char did not arrive: '" + textField.getText() + "'");
     }
+
+    @Test
+    @Order(4)
+    void frameResizeResizesScreen() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            frame.setSize(800, 600);
+        });
+        Thread.sleep(500);
+        SwingUtilities.invokeAndWait(() -> {
+            Rectangle bounds = Html5Screen.getInstance().getBounds();
+            // Since the frame is located at 50, 50, and has size 800x600,
+            // the expected screen width should be at least 50+800 = 850
+            // and height should be at least 50+600 = 650.
+            assertTrue(bounds.width >= 850, "Screen did not resize width: " + bounds);
+            assertTrue(bounds.height >= 650, "Screen did not resize height: " + bounds);
+        });
+    }
 }

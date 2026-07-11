@@ -105,11 +105,11 @@ public class Html5Toolkit extends CacioToolkit {
     }
 
     protected int getScreenWidth() {
-        return FullScreenWindowFactory.getScreenDimension().width;
+        return Html5Screen.getInstance().getBounds().width;
     }
 
     protected int getScreenHeight() {
-        return FullScreenWindowFactory.getScreenDimension().height;
+        return Html5Screen.getInstance().getBounds().height;
     }
 
     @Override

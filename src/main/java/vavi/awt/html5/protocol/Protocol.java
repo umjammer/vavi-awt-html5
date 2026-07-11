@@ -57,6 +57,7 @@ public final class Protocol {
     public static final int OP_RESIZE = 0x05;
     public static final int OP_AUDIO = 0x06;
     public static final int OP_AUDIO_STOP = 0x07;
+    public static final int OP_CURSOR = 0x08;
     public static final int OP_PONG = 0x0e;
 
     // client -> server

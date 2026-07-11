@@ -57,7 +57,8 @@ public final class ClientMain {
 
         ws.onOpen(e -> {
             InputCapture.install(canvas, document, sender);
-            sender.hello(canvas.getWidth(), canvas.getHeight());
+            sender.hello(Js.clientWidth(), Js.clientHeight());
+            Js.onResize(() -> sender.resize(Js.clientWidth(), Js.clientHeight()));
         });
         ws.onMessage((MessageEvent e) -> {
             ArrayBuffer buffer = e.getDataAsArray();
@@ -98,7 +99,8 @@ public final class ClientMain {
             FrameParser parser = new FrameParser(renderer, new AudioPlayer());
             InputCapture.install(canvas, document, sender);
 
-            sender.hello(canvas.getWidth(), canvas.getHeight());
+            sender.hello(Js.clientWidth(), Js.clientHeight());
+            Js.onResize(() -> sender.resize(Js.clientWidth(), Js.clientHeight()));
             pump(stream.getReadable().getReader(), parser);
             return null;
         }, error -> {

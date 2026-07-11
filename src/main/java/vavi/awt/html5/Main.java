@@ -58,6 +58,7 @@ public final class Main {
         ToolkitInstaller.install();
 
         SessionManager sessions = new SessionManager();
+        Html5Screen.getInstance().setSessionManager(sessions);
 
         // route javax.sound playback of the app to the browser
         Html5AudioSystem.install(new SessionAudioSink(sessions));

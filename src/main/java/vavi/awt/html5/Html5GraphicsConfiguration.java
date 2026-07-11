@@ -27,12 +27,20 @@ import java.awt.image.WritableRaster;
  */
 public class Html5GraphicsConfiguration extends GraphicsConfiguration {
 
-    private static final Dimension screenSize;
+    private static Dimension screenSize;
     static {
         String size = System.getProperty("cacio.managed.screensize", "1024x768");
         int x = size.indexOf('x');
         screenSize = new Dimension(Integer.parseInt(size.substring(0, x)),
                                    Integer.parseInt(size.substring(x + 1)));
+    }
+
+    public static synchronized void setScreenSize(Dimension size) {
+        screenSize = size;
+    }
+
+    public static synchronized Dimension getScreenSize() {
+        return screenSize;
     }
 
     private final ColorModel model;
@@ -63,7 +71,8 @@ public class Html5GraphicsConfiguration extends GraphicsConfiguration {
 
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(0, 0, screenSize.width, screenSize.height);
+        Dimension size = getScreenSize();
+        return new Rectangle(0, 0, size.width, size.height);
     }
 
     @Override

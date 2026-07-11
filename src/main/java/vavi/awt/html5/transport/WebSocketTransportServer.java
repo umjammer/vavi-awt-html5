@@ -84,7 +84,7 @@ public class WebSocketTransportServer extends WebSocketServer {
 
             @Override
             public void onClientResize(int viewW, int viewH) {
-                logger.fine(() -> "client viewport " + viewW + "x" + viewH + " (ignored in v1)");
+                Html5Screen.getInstance().setClientViewportSize(viewW, viewH);
             }
         });
 

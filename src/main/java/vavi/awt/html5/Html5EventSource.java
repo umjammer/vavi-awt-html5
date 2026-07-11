@@ -23,6 +23,9 @@ import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.SwingUtilities;
 
+import vavi.awt.html5.transport.SessionManager;
+import vavi.awt.html5.protocol.MessageWriter;
+
 import com.github.caciocavallosilano.cacio.peer.CacioEventSource;
 import com.github.caciocavallosilano.cacio.peer.managed.EventData;
 
@@ -58,6 +61,55 @@ public class Html5EventSource implements CacioEventSource {
     private int dragCurX, dragCurY;
     /** {@link #dragWindow} size, captured at press */
     private int dragW, dragH;
+
+    /** the window currently being resized by a border drag, or null */
+    private Window resizeWindow;
+    /** resize direction mask: 1 left, 2 right, 4 top, 8 bottom */
+    private int resizeDir;
+    private static final int RESIZE_NONE = 0;
+    private static final int RESIZE_LEFT = 1;
+    private static final int RESIZE_RIGHT = 2;
+    private static final int RESIZE_TOP = 4;
+    private static final int RESIZE_BOTTOM = 8;
+    /** original window bounds at press */
+    private int resizeStartX, resizeStartY, resizeStartW, resizeStartH;
+    /** grab coordinates at press */
+    private int resizeGrabX, resizeGrabY;
+
+    private int currentCursor = -1;
+
+    private void updateCursor(int cursorType) {
+        if (currentCursor != cursorType) {
+            currentCursor = cursorType;
+            sendCursor(cursorType);
+        }
+    }
+
+    private static void sendCursor(int cursorType) {
+        SessionManager sm = Html5Screen.getInstance().getSessionManager();
+        if (sm != null) {
+            MessageWriter writer = sm.current();
+            if (writer != null) {
+                try {
+                    writer.writeCursor(cursorType);
+                } catch (java.io.IOException e) {
+                    // Ignore
+                }
+            }
+        }
+    }
+
+    private static int getCursorForDirection(int dir) {
+        if (dir == (RESIZE_LEFT | RESIZE_TOP)) return 6; // NW
+        if (dir == (RESIZE_RIGHT | RESIZE_TOP)) return 7; // NE
+        if (dir == (RESIZE_LEFT | RESIZE_BOTTOM)) return 4; // SW
+        if (dir == (RESIZE_RIGHT | RESIZE_BOTTOM)) return 5; // SE
+        if ((dir & RESIZE_LEFT) != 0) return 10; // W
+        if ((dir & RESIZE_RIGHT) != 0) return 11; // E
+        if ((dir & RESIZE_TOP) != 0) return 8; // N
+        if ((dir & RESIZE_BOTTOM) != 0) return 9; // S
+        return 0; // default
+    }
 
     private Html5EventSource() {
     }
@@ -124,6 +176,132 @@ public class Html5EventSource implements CacioEventSource {
         return false;
     }
 
+    private static class BorderHit {
+        Window window;
+        int direction;
+    }
+
+    private static BorderHit findBorderWindow(int x, int y) {
+        for (Window w : Window.getWindows()) {
+            if (!(w instanceof Frame || w instanceof Dialog)) {
+                continue;
+            }
+            if (!w.isVisible() || !w.isShowing()) {
+                continue;
+            }
+            Point loc;
+            try {
+                loc = w.getLocationOnScreen();
+            } catch (IllegalComponentStateException e) {
+                continue;
+            }
+            Dimension size = w.getSize();
+            int tolerance = 4;
+            if (x < loc.x - tolerance || x >= loc.x + size.width + tolerance ||
+                y < loc.y - tolerance || y >= loc.y + size.height + tolerance) {
+                continue;
+            }
+            int relX = x - loc.x;
+            int relY = y - loc.y;
+            Insets in = w.getInsets();
+            int border = Math.max(4, in.left);
+            int dir = RESIZE_NONE;
+            if (relX < border) {
+                dir |= RESIZE_LEFT;
+            } else if (relX >= size.width - border) {
+                dir |= RESIZE_RIGHT;
+            }
+            if (relY < border) {
+                dir |= RESIZE_TOP;
+            } else if (relY >= size.height - border) {
+                dir |= RESIZE_BOTTOM;
+            }
+            if (dir != RESIZE_NONE) {
+                BorderHit hit = new BorderHit();
+                hit.window = w;
+                hit.direction = dir;
+                return hit;
+            }
+        }
+        return null;
+    }
+
+    private boolean handleBorderResize(int id, int x, int y, int button) {
+        if (id == MouseEvent.MOUSE_PRESSED) {
+            resizeWindow = null;
+            if (button == MouseEvent.BUTTON1_DOWN_MASK) {
+                BorderHit hit = findBorderWindow(x, y);
+                if (hit != null) {
+                    Window w = hit.window;
+                    try {
+                        Point loc = w.getLocationOnScreen();
+                        Dimension size = w.getSize();
+                        resizeWindow = w;
+                        resizeDir = hit.direction;
+                        resizeStartX = loc.x;
+                        resizeStartY = loc.y;
+                        resizeStartW = size.width;
+                        resizeStartH = size.height;
+                        resizeGrabX = x;
+                        resizeGrabY = y;
+                    } catch (IllegalComponentStateException e) {
+                        resizeWindow = null;
+                    }
+                }
+            }
+            return false;
+        }
+        if (resizeWindow == null) {
+            return false;
+        }
+        if (id == MouseEvent.MOUSE_DRAGGED) {
+            Window w = resizeWindow;
+            int dx = x - resizeGrabX;
+            int dy = y - resizeGrabY;
+            int nx = resizeStartX;
+            int ny = resizeStartY;
+            int nw = resizeStartW;
+            int nh = resizeStartH;
+            if ((resizeDir & RESIZE_LEFT) != 0) {
+                nx = resizeStartX + dx;
+                nw = resizeStartW - dx;
+                if (nw < 100) {
+                    nx = resizeStartX + resizeStartW - 100;
+                    nw = 100;
+                }
+            } else if ((resizeDir & RESIZE_RIGHT) != 0) {
+                nw = resizeStartW + dx;
+                if (nw < 100) {
+                    nw = 100;
+                }
+            }
+            if ((resizeDir & RESIZE_TOP) != 0) {
+                ny = resizeStartY + dy;
+                nh = resizeStartH - dy;
+                if (nh < 80) {
+                    ny = resizeStartY + resizeStartH - 80;
+                    nh = 80;
+                }
+            } else if ((resizeDir & RESIZE_BOTTOM) != 0) {
+                nh = resizeStartH + dy;
+                if (nh < 80) {
+                    nh = 80;
+                }
+            }
+            final int finalNx = nx;
+            final int finalNy = ny;
+            final int finalNw = nw;
+            final int finalNh = nh;
+            SwingUtilities.invokeLater(() -> w.setBounds(finalNx, finalNy, finalNw, finalNh));
+            return true;
+        }
+        if (id == MouseEvent.MOUSE_RELEASED) {
+            resizeWindow = null;
+            return true;
+        }
+        return false;
+    }
+
     /** the topmost decorated Frame/Dialog whose title bar contains (x, y), or null */
     private static Window findTitleBarWindow(int x, int y) {
         Window best = null;
@@ -156,6 +334,10 @@ public class Html5EventSource implements CacioEventSource {
                 continue;
             }
             if (relX < border || relX >= size.width - border) {
+                continue;
+            }
+            // Exclude left system menu icon and right close/max/min buttons
+            if (relX < border + 24 || relX >= size.width - border - 75) {
                 continue;
             }
             if (best == null || w.isActive()) {
@@ -195,8 +377,28 @@ public class Html5EventSource implements CacioEventSource {
      * @param button {@link MouseEvent#BUTTON1_DOWN_MASK} etc. of the affected button
      */
     public void postMouseEvent(int id, int x, int y, int modifiers, int button, int clickCount) {
+        int targetCursor = 0;
+        if (resizeWindow != null) {
+            targetCursor = getCursorForDirection(resizeDir);
+        } else {
+            BorderHit hit = findBorderWindow(x, y);
+            if (hit != null) {
+                targetCursor = getCursorForDirection(hit.direction);
+            } else {
+                Window titleWin = findTitleBarWindow(x, y);
+                if (titleWin != null) {
+                    targetCursor = 13; // MOVE_CURSOR
+                }
+            }
+        }
+        updateCursor(targetCursor);
+
         if (handleTitleBarDrag(id, x, y, button)) {
             // consumed: the press-drag is moving a decorated window's title bar
+            return;
+        }
+        if (handleBorderResize(id, x, y, button)) {
+            // consumed: the press-drag is resizing a window's border
             return;
         }
         EventData ev = new EventData();
