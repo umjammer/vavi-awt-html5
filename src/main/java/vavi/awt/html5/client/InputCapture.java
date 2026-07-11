@@ -6,6 +6,7 @@
 
 package vavi.awt.html5.client;
 
+import org.teavm.jso.dom.events.Event;
 import org.teavm.jso.dom.events.KeyboardEvent;
 import org.teavm.jso.dom.events.MouseEvent;
 import org.teavm.jso.dom.events.WheelEvent;
@@ -80,7 +81,7 @@ final class InputCapture {
             sender.mouse(ClientProtocol.MOUSE_MOVE, e.getOffsetX(), e.getOffsetY(),
                     0, buttonsState(e), mouseMods(e), 0);
         });
-        canvas.addEventListener("contextmenu", evt -> evt.preventDefault());
+        canvas.addEventListener("contextmenu", Event::preventDefault);
         canvas.addEventListener("wheel", evt -> {
             WheelEvent e = (WheelEvent) evt;
             e.preventDefault();

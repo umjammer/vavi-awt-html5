@@ -53,7 +53,7 @@ public final class ClientMain {
 
         CanvasRenderer renderer = new CanvasRenderer(canvas);
         FrameParser parser = new FrameParser(renderer);
-        MsgSender sender = new MsgSender(bytes -> ws.send(bytes));
+        MsgSender sender = new MsgSender(ws::send);
 
         ws.onOpen(e -> {
             InputCapture.install(canvas, document, sender);
