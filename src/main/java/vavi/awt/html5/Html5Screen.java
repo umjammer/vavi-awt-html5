@@ -7,13 +7,10 @@
 package vavi.awt.html5;
 
 import java.awt.Color;
-import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Frame;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
-import java.awt.Window;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.geom.Area;
@@ -70,9 +67,6 @@ public class Html5Screen implements PlatformScreen {
 
     private volatile BufferedImage screenBuffer;
 
-    private int clientWidth = -1;
-    private int clientHeight = -1;
-
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Html5Screen.class.getName());
 
     /**
@@ -89,47 +83,19 @@ public class Html5Screen implements PlatformScreen {
     private Html5Screen() {
         Dimension d = FullScreenWindowFactory.getScreenDimension();
         screenBuffer = new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_ARGB);
-
-        // Listen for window resize/show events to dynamically adjust the screen size
-        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
-            if (event instanceof java.awt.event.ComponentEvent ce && ce.getSource() instanceof Window w) {
-                if (ce.getID() == java.awt.event.ComponentEvent.COMPONENT_RESIZED ||
-                    ce.getID() == java.awt.event.ComponentEvent.COMPONENT_SHOWN) {
-                    if (w.isVisible() && w.isShowing() && (w instanceof Frame || w instanceof Dialog)) {
-                        adjustScreenSizeToFitWindows();
-                    }
-                }
-            }
-        }, java.awt.AWTEvent.COMPONENT_EVENT_MASK);
     }
 
+    /**
+     * The virtual screen mirrors the browser viewport: this is the only
+     * trigger for a screen resize. Window bounds never affect the screen —
+     * like a real desktop, a window resized or moved beyond the screen edge
+     * is simply clipped.
+     */
     public synchronized void setClientViewportSize(int w, int h) {
-        this.clientWidth = w;
-        this.clientHeight = h;
-        adjustScreenSizeToFitWindows();
-    }
-
-    private synchronized void adjustScreenSizeToFitWindows() {
-        int maxW = clientWidth;
-        int maxH = clientHeight;
-        for (Window w : Window.getWindows()) {
-            if (w.isVisible() && w.isShowing() && (w instanceof Frame || w instanceof Dialog)) {
-                Rectangle bounds = w.getBounds();
-                int right = bounds.x + bounds.width;
-                int bottom = bounds.y + bounds.height;
-                if (right > maxW) {
-                    maxW = right;
-                }
-                if (bottom > maxH) {
-                    maxH = bottom;
-                }
-            }
+        if (w <= 0 || h <= 0) {
+            return;
         }
-        if (maxW > 0 && maxH > 0) {
-            maxW = Math.max(maxW, 100);
-            maxH = Math.max(maxH, 100);
-            resize(maxW, maxH);
-        }
+        resize(w, h);
     }
 
     public synchronized void resize(int width, int height) {

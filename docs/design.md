@@ -19,8 +19,18 @@ StaticHttpServer (com.sun.net.httpserver): index.html + client.wasm + globals
 Based on the caciocavallosilano fork of Caciocavallo (`cacio-shared`, java-25
 line, via jitpack). `Html5Toolkit` extends `CacioToolkit` and uses the managed
 window path: all AWT windows are composited into one virtual screen
-(`Html5Screen`) backed by a `BufferedImage`. Screen size comes from
-`cacio.managed.screensize` (default 1024x768).
+(`Html5Screen`) backed by a `BufferedImage`. Screen size starts at
+`cacio.managed.screensize` (default 1024x768) and then mirrors the browser
+viewport: `HELLO` and `CLIENT_RESIZE` are the only triggers for a screen
+resize. Window bounds never affect the screen — like a real desktop, a
+window resized or moved past the screen edge is simply clipped.
+
+`Html5WindowFactory` wraps cacio's `FullScreenWindowFactory` to post
+`COMPONENT_RESIZED`/`COMPONENT_MOVED` to toplevel windows when their bounds
+change: AWT suppresses these notifications for toplevels with a native peer
+(JDK-5025858) and expects them from the window system, which cacio's managed
+windows never provide. Without this, `componentResized`/`componentMoved`
+listeners on frames are silent.
 
 `FramePump` detects changes by diffing the framebuffer against the previously
 sent frame in 64-pixel tiles ~30 times per second, and ships changed regions as

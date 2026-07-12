@@ -71,6 +71,8 @@ public class WebSocketTransportServer extends WebSocketServer {
                 new InputEventDecoder.Listener() {
             @Override
             public void onHello(int version, int viewW, int viewH) throws IOException {
+                // the browser viewport defines the virtual screen size
+                Html5Screen.getInstance().setClientViewportSize(viewW, viewH);
                 var bounds = Html5Screen.getInstance().getBounds();
                 writer.writeInit(bounds.width, bounds.height);
                 // the frame pump detects the new session and sends a full frame

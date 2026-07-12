@@ -171,18 +171,26 @@ class Html5ToolkitTest {
 
     @Test
     @Order(4)
-    void frameResizeResizesScreen() throws Exception {
-        SwingUtilities.invokeAndWait(() -> {
-            frame.setSize(800, 600);
-        });
+    void screenTracksClientViewportNotWindows() throws Exception {
+        Rectangle before = Html5Screen.getInstance().getBounds();
+
+        // resizing a window must not touch the virtual screen: like a real
+        // desktop, a window larger than the screen is simply clipped
+        SwingUtilities.invokeAndWait(() -> frame.setSize(before.width + 200, before.height + 150));
         Thread.sleep(500);
-        SwingUtilities.invokeAndWait(() -> {
+        Rectangle after = Html5Screen.getInstance().getBounds();
+        assertTrue(after.width == before.width && after.height == before.height,
+                "window resize changed the screen: " + before + " -> " + after);
+
+        // the browser viewport is the only trigger for a screen resize
+        Html5Screen.getInstance().setClientViewportSize(1280, 800);
+        try {
             Rectangle bounds = Html5Screen.getInstance().getBounds();
-            // Since the frame is located at 50, 50, and has size 800x600,
-            // the expected screen width should be at least 50+800 = 850
-            // and height should be at least 50+600 = 650.
-            assertTrue(bounds.width >= 850, "Screen did not resize width: " + bounds);
-            assertTrue(bounds.height >= 650, "Screen did not resize height: " + bounds);
-        });
+            assertTrue(bounds.width == 1280 && bounds.height == 800,
+                    "screen did not follow the client viewport: " + bounds);
+        } finally {
+            Html5Screen.getInstance().setClientViewportSize(before.width, before.height);
+            SwingUtilities.invokeAndWait(() -> frame.setSize(400, 300));
+        }
     }
 }
