@@ -49,7 +49,9 @@ the derived events (enter/exit/click/focus/window).
 window's title bar and moves the window itself. cacio draws L&F decorations on
 an internal proxy window whose peer `setBounds` is a no-op, so its built-in
 `MetalRootPaneUI` title-bar drag moves nothing; instead we hit-test the title
-bar (top inset minus any menu bar, excluding the resize border) and drive
+bar (the top inset, minus an AWT `MenuBar` if one is mirrored into the peer
+decoration — a Swing `JMenuBar` sits below the insets and doesn't shrink the
+zone — excluding the resize border) and drive
 `Window.setLocation` on the real `Frame`/`Dialog`. The initial press is still
 forwarded so activation/focus behave normally; the drag and release are
 consumed. Each drag step also posts a `COPY_AREA` hint (see below).

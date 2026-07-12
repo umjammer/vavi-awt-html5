@@ -11,17 +11,20 @@ import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.IllegalComponentStateException;
 import java.awt.Insets;
+import java.awt.MenuBar;
 import java.awt.Point;
 import java.awt.Window;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.lang.reflect.Method;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.SwingUtilities;
+
+import sun.awt.AWTAccessor;
 
 import vavi.awt.html5.transport.SessionManager;
 import vavi.awt.html5.protocol.MessageWriter;
@@ -347,16 +350,39 @@ public class Html5EventSource implements CacioEventSource {
         return best;
     }
 
+    /**
+     * The height of the part of the top inset occupied by a menu bar, i.e.
+     * how much of it is <em>not</em> title bar. Only an AWT {@link MenuBar}
+     * counts: cacio mirrors it as a {@code JMenuBar} on the peer's root pane,
+     * below the title pane, so it is included in the peer's top inset. A
+     * Swing {@code JMenuBar} lives inside the content area <em>below</em>
+     * the insets and never overlaps the title pane — subtracting it here
+     * would shrink the draggable title bar to a sliver.
+     */
     private static int menuBarHeight(Window w) {
-        JMenuBar mb = null;
-        if (w instanceof JFrame jf) {
-            mb = jf.getJMenuBar();
-        } else if (w instanceof JDialog jd) {
-            mb = jd.getJMenuBar();
-        }
-        if (mb != null && mb.isVisible()) {
-            int h = mb.getHeight();
-            return h > 0 ? h : mb.getPreferredSize().height;
+        if (w instanceof Frame f && !(f instanceof JFrame)) {
+            MenuBar mb = f.getMenuBar();
+            if (mb != null) {
+                try {
+                    Object peer = AWTAccessor.getMenuComponentAccessor().getPeer(mb);
+                    Method m = null;
+                    for (Class<?> c = peer.getClass(); c != null && m == null; c = c.getSuperclass()) {
+                        try {
+                            m = c.getDeclaredMethod("getSwingMenu");
+                        } catch (NoSuchMethodException e) {
+                            // keep looking up the hierarchy
+                        }
+                    }
+                    if (m != null) {
+                        m.setAccessible(true);
+                        JMenuBar jmb = (JMenuBar) m.invoke(peer);
+                        int h = jmb.getHeight();
+                        return h > 0 ? h : jmb.getPreferredSize().height;
+                    }
+                } catch (Exception e) {
+                    // fall through: treat the whole top inset as title bar
+                }
+            }
         }
         return 0;
     }
