@@ -162,15 +162,18 @@ class Html5TransportTest {
         assertTrue(gotInit.await(10, TimeUnit.SECONDS), "no INIT received");
         assertTrue(gotFrameEnd.await(10, TimeUnit.SECONDS), "no FRAME_END received");
 
-        // validate INIT and reassemble the received blits into a screen image
-        BufferedImage received = new BufferedImage(1024, 768, BufferedImage.TYPE_INT_ARGB);
+        // validate INIT and reassemble the received blits into a screen image.
+        // the screen is a JVM-wide singleton other tests may have grown, so
+        // compare against its actual bounds rather than the 1024x768 default
+        Rectangle screen = Html5Screen.getInstance().getBounds();
+        BufferedImage received = new BufferedImage(screen.width, screen.height, BufferedImage.TYPE_INT_ARGB);
         boolean sawBlit = false;
         for (Frame f : frames) {
             ByteBuffer b = ByteBuffer.wrap(f.body());
             if (f.opcode() == Protocol.OP_INIT) {
                 assertEquals(Protocol.VERSION, b.getShort() & 0xffff);
-                assertEquals(1024, b.getShort() & 0xffff);
-                assertEquals(768, b.getShort() & 0xffff);
+                assertEquals(screen.width, b.getShort() & 0xffff);
+                assertEquals(screen.height, b.getShort() & 0xffff);
             } else if (f.opcode() == Protocol.OP_BLIT) {
                 int x = b.getShort() & 0xffff;
                 int y = b.getShort() & 0xffff;

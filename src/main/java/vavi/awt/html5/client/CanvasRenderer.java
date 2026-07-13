@@ -80,4 +80,27 @@ class CanvasRenderer {
             next();
         });
     }
+
+    void setCursor(int cursorType) {
+        String cursorStr = switch (cursorType) {
+            case 1 -> "crosshair";
+            case 2 -> "text";
+            case 3 -> "wait";
+            case 4 -> "sw-resize";
+            case 5 -> "se-resize";
+            case 6 -> "nw-resize";
+            case 7 -> "ne-resize";
+            case 8 -> "n-resize";
+            case 9 -> "s-resize";
+            case 10 -> "w-resize";
+            case 11 -> "e-resize";
+            case 12 -> "pointer";
+            case 13 -> "move";
+            default -> "default";
+        };
+        enqueue(() -> {
+            canvas.getStyle().setProperty("cursor", cursorStr);
+            next();
+        });
+    }
 }

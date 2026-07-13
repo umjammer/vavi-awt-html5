@@ -112,6 +112,8 @@ public class Http3WebTransportServer {
                 new InputEventDecoder.Listener() {
             @Override
             public void onHello(int version, int viewW, int viewH) throws IOException {
+                // the browser viewport defines the virtual screen size
+                Html5Screen.getInstance().setClientViewportSize(viewW, viewH);
                 var bounds = Html5Screen.getInstance().getBounds();
                 writer.writeInit(bounds.width, bounds.height);
                 // the frame pump detects the new session and sends a full frame
@@ -125,7 +127,7 @@ public class Http3WebTransportServer {
 
             @Override
             public void onClientResize(int viewW, int viewH) {
-                logger.fine(() -> "client viewport " + viewW + "x" + viewH + " (ignored in v1)");
+                Html5Screen.getInstance().setClientViewportSize(viewW, viewH);
             }
         });
 

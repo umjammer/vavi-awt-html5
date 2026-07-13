@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.imageio.ImageIO;
 
+import vavi.awt.html5.transport.SessionManager;
+
 import com.github.caciocavallosilano.cacio.peer.WindowClippedGraphics;
 import com.github.caciocavallosilano.cacio.peer.managed.FullScreenWindowFactory;
 import com.github.caciocavallosilano.cacio.peer.managed.PlatformScreen;
@@ -53,7 +55,19 @@ public class Html5Screen implements PlatformScreen {
         return instance;
     }
 
-    private final BufferedImage screenBuffer;
+    private SessionManager sessionManager;
+
+    public synchronized void setSessionManager(SessionManager sm) {
+        this.sessionManager = sm;
+    }
+
+    public synchronized SessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    private volatile BufferedImage screenBuffer;
+
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Html5Screen.class.getName());
 
     /**
      * Pending copyArea hints (framebuffer/device coordinates) produced by
@@ -69,6 +83,34 @@ public class Html5Screen implements PlatformScreen {
     private Html5Screen() {
         Dimension d = FullScreenWindowFactory.getScreenDimension();
         screenBuffer = new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_ARGB);
+    }
+
+    /**
+     * The virtual screen mirrors the browser viewport: this is the only
+     * trigger for a screen resize. Window bounds never affect the screen —
+     * like a real desktop, a window resized or moved beyond the screen edge
+     * is simply clipped.
+     */
+    public synchronized void setClientViewportSize(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        resize(w, h);
+    }
+
+    public synchronized void resize(int width, int height) {
+        BufferedImage fb = screenBuffer;
+        if (fb.getWidth() == width && fb.getHeight() == height) {
+            return;
+        }
+        BufferedImage newBuffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = newBuffer.createGraphics();
+        g.drawImage(fb, 0, 0, null);
+        g.dispose();
+        screenBuffer = newBuffer;
+
+        Html5GraphicsConfiguration.setScreenSize(new Dimension(width, height));
+        logger.info("Resized virtual screen to " + width + "x" + height);
     }
 
     /**
@@ -110,12 +152,14 @@ public class Html5Screen implements PlatformScreen {
 
     @Override
     public Rectangle getBounds() {
-        return new Rectangle(0, 0, screenBuffer.getWidth(), screenBuffer.getHeight());
+        BufferedImage fb = screenBuffer;
+        return new Rectangle(0, 0, fb.getWidth(), fb.getHeight());
     }
 
     @Override
     public Graphics2D getClippedGraphics(Color fg, Color bg, Font f, List<Rectangle> clipRects) {
-        Graphics2D g2d = (Graphics2D) screenBuffer.getGraphics();
+        BufferedImage fb = screenBuffer;
+        Graphics2D g2d = (Graphics2D) fb.getGraphics();
         if (clipRects != null && !clipRects.isEmpty()) {
             Area a = new Area(getBounds());
             for (Rectangle clip : clipRects) {
@@ -138,10 +182,11 @@ public class Html5Screen implements PlatformScreen {
     /** writes the current framebuffer as png, synchronized against rendering */
     public void snapshotPng(OutputStream out) throws IOException {
         BufferedImage copy;
-        synchronized (screenBuffer) {
-            copy = new BufferedImage(screenBuffer.getWidth(), screenBuffer.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage fb = screenBuffer;
+        synchronized (fb) {
+            copy = new BufferedImage(fb.getWidth(), fb.getHeight(), BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = copy.createGraphics();
-            g.drawImage(screenBuffer, 0, 0, null);
+            g.drawImage(fb, 0, 0, null);
             g.dispose();
         }
         ImageIO.write(copy, "png", out);

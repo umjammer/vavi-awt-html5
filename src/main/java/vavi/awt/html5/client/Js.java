@@ -128,4 +128,18 @@ final class Js {
             if (el) el.textContent = text;
             console.log(text);""")
     static native void status(String text);
+
+    @JSBody(script = "return window.innerWidth - 16;")
+    static native int clientWidth();
+
+    @JSBody(script = "return window.innerHeight - 40;")
+    static native int clientHeight();
+
+    @org.teavm.jso.JSFunctor
+    interface ResizeListener extends JSObject {
+        void onResize();
+    }
+
+    @JSBody(params = {"listener"}, script = "window.addEventListener('resize', listener);")
+    static native void onResize(ResizeListener listener);
 }

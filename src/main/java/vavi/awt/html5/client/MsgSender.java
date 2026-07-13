@@ -92,4 +92,11 @@ class MsgSender {
         b.write(location);
         send(ClientProtocol.OP_KEY, b);
     }
+
+    void resize(int viewW, int viewH) {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        u16(b, viewW);
+        u16(b, viewH);
+        send(ClientProtocol.OP_CLIENT_RESIZE, b);
+    }
 }

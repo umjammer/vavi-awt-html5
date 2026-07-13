@@ -109,6 +109,10 @@ class FrameParser {
             audio.stop(buffer[off] & 0xff);
             break;
         }
+        case ClientProtocol.OP_CURSOR: {
+            renderer.setCursor(buffer[off] & 0xff);
+            break;
+        }
         case ClientProtocol.OP_FRAME_END:
         case ClientProtocol.OP_PONG:
             break;

@@ -168,4 +168,29 @@ class Html5ToolkitTest {
         }
         assertTrue("a".equals(textField.getText()), "typed char did not arrive: '" + textField.getText() + "'");
     }
+
+    @Test
+    @Order(4)
+    void screenTracksClientViewportNotWindows() throws Exception {
+        Rectangle before = Html5Screen.getInstance().getBounds();
+
+        // resizing a window must not touch the virtual screen: like a real
+        // desktop, a window larger than the screen is simply clipped
+        SwingUtilities.invokeAndWait(() -> frame.setSize(before.width + 200, before.height + 150));
+        Thread.sleep(500);
+        Rectangle after = Html5Screen.getInstance().getBounds();
+        assertTrue(after.width == before.width && after.height == before.height,
+                "window resize changed the screen: " + before + " -> " + after);
+
+        // the browser viewport is the only trigger for a screen resize
+        Html5Screen.getInstance().setClientViewportSize(1280, 800);
+        try {
+            Rectangle bounds = Html5Screen.getInstance().getBounds();
+            assertTrue(bounds.width == 1280 && bounds.height == 800,
+                    "screen did not follow the client viewport: " + bounds);
+        } finally {
+            Html5Screen.getInstance().setClientViewportSize(before.width, before.height);
+            SwingUtilities.invokeAndWait(() -> frame.setSize(400, 300));
+        }
+    }
 }

@@ -27,6 +27,7 @@ final class ClientProtocol {
     static final int OP_RESIZE = 0x05;
     static final int OP_AUDIO = 0x06;
     static final int OP_AUDIO_STOP = 0x07;
+    static final int OP_CURSOR = 0x08;
     static final int OP_PONG = 0x0e;
 
     // client -> server

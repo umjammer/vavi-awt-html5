@@ -64,7 +64,9 @@ public class Html5Toolkit extends CacioToolkit {
         if (platformWindowFactory == null) {
             Html5Screen screen = Html5Screen.getInstance();
             Html5EventSource eventSource = Html5EventSource.getInstance();
-            platformWindowFactory = new FullScreenWindowFactory(screen, eventSource);
+            // wrapped so toplevels get COMPONENT_RESIZED/MOVED, which AWT
+            // leaves to the peer for windows (see Html5WindowFactory)
+            platformWindowFactory = new Html5WindowFactory(new FullScreenWindowFactory(screen, eventSource));
         }
         return platformWindowFactory;
     }
@@ -105,11 +107,11 @@ public class Html5Toolkit extends CacioToolkit {
     }
 
     protected int getScreenWidth() {
-        return FullScreenWindowFactory.getScreenDimension().width;
+        return Html5Screen.getInstance().getBounds().width;
     }
 
     protected int getScreenHeight() {
-        return FullScreenWindowFactory.getScreenDimension().height;
+        return Html5Screen.getInstance().getBounds().height;
     }
 
     @Override
