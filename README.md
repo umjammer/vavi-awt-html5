@@ -56,3 +56,7 @@ $ bin/run.sh YourApp.jar           # any Swing app in the jar
  * logging
  * ~~sound~~
  * microphone capture (browser → `TargetDataLine`)
+ * ~~frame size change~~
+   * ~~event?~~
+ * ~~where is tone button?~~
+ * link in text (html)
