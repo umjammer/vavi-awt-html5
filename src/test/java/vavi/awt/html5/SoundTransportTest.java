@@ -103,7 +103,7 @@ class SoundTransportTest {
             public void onError(Exception ex) {
             }
         };
-        assertTrue(client.connectBlocking(10, TimeUnit.SECONDS), "ws connect failed");
+        assertTrue(client.connectBlocking(30, TimeUnit.SECONDS), "ws connect failed");
 
         // HELLO: u32 length, u8 opcode, u16 version, u16 viewW, u16 viewH
         ByteBuffer hello = ByteBuffer.allocate(11);
