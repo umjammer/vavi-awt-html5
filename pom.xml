@@ -9,9 +9,18 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- overridable: point at a locally installed caciocavallo fork if jitpack is unavailable -->
-    <cacio.groupId>com.github.CaciocavalloSilano.caciocavallo</cacio.groupId>
-    <cacio.version>java-25-71a93cd59f-1</cacio.version>
+    <!--
+      cacio-shared, built from the local checkout of
+      CaciocavalloSilano/caciocavallo:
+        mvn -t <toolchains.xml> -pl cacio-shared-jdk25 -am -DskipTests install
+      That checkout carries the window decoration handling this backend relies
+      on: moving and resizing a decorated window, the mouse grab that keeps a
+      drag alive once the pointer leaves the window, and the resize cursors.
+      Override these to build against a published jitpack artifact instead.
+    -->
+    <cacio.groupId>com.github.caciocavallosilano</cacio.groupId>
+    <cacio.artifactId>cacio-shared-jdk25</cacio.artifactId>
+    <cacio.version>2.1-SNAPSHOT</cacio.version>
     <bytebuddy.version>1.18.11</bytebuddy.version>
     <kwik.version>0.10.10</kwik.version>
     <flupke.version>0.9.4</flupke.version>
@@ -76,7 +85,7 @@
               <goal>compile</goal>
             </goals>
             <configuration>
-              <release>21</release>
+              <release>25</release>
               <source combine.self="override"/>
               <target combine.self="override"/>
               <compilerArgs combine.self="override"/>
@@ -174,7 +183,7 @@
     <!-- AWT backend SPI (CaciocavalloSilano fork, java-25 line) -->
     <dependency>
       <groupId>${cacio.groupId}</groupId>
-      <artifactId>cacio-shared</artifactId>
+      <artifactId>${cacio.artifactId}</artifactId>
       <version>${cacio.version}</version>
     </dependency>
 

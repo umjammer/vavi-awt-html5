@@ -7,6 +7,7 @@
 package vavi.awt.html5;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.imageio.ImageIO;
 
+import vavi.awt.html5.protocol.MessageWriter;
 import vavi.awt.html5.transport.SessionManager;
 
 import com.github.caciocavallosilano.cacio.peer.WindowClippedGraphics;
@@ -63,6 +65,56 @@ public class Html5Screen implements PlatformScreen {
 
     public synchronized SessionManager getSessionManager() {
         return sessionManager;
+    }
+
+    /**
+     * cacio tells us when a window's pixels move as a block, which the browser
+     * can do as a canvas self-copy instead of receiving the window again.
+     */
+    @Override
+    public void windowMoved(Rectangle from, int dx, int dy) {
+        hintCopyArea(from.x, from.y, from.width, from.height, dx, dy);
+    }
+
+    /** the cursor the browser is currently showing, so it is only sent on change */
+    private volatile int shownCursor = -1;
+
+    /** @return the cursor last handed to this screen, for tests */
+    int getShownCursorForTest() {
+        return shownCursor;
+    }
+
+    /** forgets the last cursor, so a test can see the next one even if unchanged */
+    void resetShownCursorForTest() {
+        shownCursor = -1;
+    }
+
+    /**
+     * Tells the browser which cursor to show. cacio works out which one that
+     * is -- resize cursors on the edges of a decorated window, a move cursor
+     * over its title bar -- and calls this through {@link PlatformScreen}.
+     */
+    @Override
+    public void setCursor(Cursor cursor) {
+        int type = cursor.getType();
+        if (type == shownCursor) {
+            return;
+        }
+        shownCursor = type;
+
+        SessionManager sm = getSessionManager();
+        if (sm == null) {
+            return;
+        }
+        MessageWriter writer = sm.current();
+        if (writer == null) {
+            return;
+        }
+        try {
+            writer.writeCursor(type);
+        } catch (IOException e) {
+            logger.log(java.util.logging.Level.FINE, "cursor not sent", e);
+        }
     }
 
     private volatile BufferedImage screenBuffer;
