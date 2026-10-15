@@ -5,13 +5,13 @@
 
   <groupId>vavi</groupId>
   <artifactId>vavi-awt-html5</artifactId>
-  <version>0.0.4</version>
+  <version>0.0.5</version>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- overridable: point at a locally installed caciocavallo fork if jitpack is unavailable -->
-    <cacio.groupId>com.github.CaciocavalloSilano.caciocavallo</cacio.groupId>
-    <cacio.version>java-25-71a93cd59f-1</cacio.version>
+    <cacio.groupId>com.github.umjammer.caciocavallo-silano</cacio.groupId>
+    <cacio.artifactId>cacio-shared-jdk25</cacio.artifactId>
+    <cacio.version>2.1.0</cacio.version>
     <bytebuddy.version>1.18.11</bytebuddy.version>
     <kwik.version>0.10.10</kwik.version>
     <flupke.version>0.9.4</flupke.version>
@@ -46,7 +46,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.12.1</version>
+        <version>3.16.0</version>
         <configuration>
           <!-- source/target instead of release: javac rejects add-exports of JDK internals under - -release -->
           <source>25</source>
@@ -76,7 +76,7 @@
               <goal>compile</goal>
             </goals>
             <configuration>
-              <release>21</release>
+              <release>25</release>
               <source combine.self="override"/>
               <target combine.self="override"/>
               <compilerArgs combine.self="override"/>
@@ -91,7 +91,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.2.5</version>
+        <version>3.6.0</version>
         <configuration>
           <argLine>
             -Djava.util.logging.config.file=${project.build.testOutputDirectory}/logging.properties
@@ -138,7 +138,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.1</version>
         <configuration>
           <archive>
             <manifest>
@@ -162,7 +162,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>6.0.3</version>
+        <version>6.1.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -174,7 +174,7 @@
     <!-- AWT backend SPI (CaciocavalloSilano fork, java-25 line) -->
     <dependency>
       <groupId>${cacio.groupId}</groupId>
-      <artifactId>cacio-shared</artifactId>
+      <artifactId>${cacio.artifactId}</artifactId>
       <version>${cacio.version}</version>
     </dependency>
 
@@ -258,9 +258,15 @@
     </dependency>
 
     <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk14</artifactId>
+      <version>2.0.20</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>com.github.umjammer</groupId>
       <artifactId>vavi-commons</artifactId>
-      <version>1.1.18</version>
+      <version>1.1.24</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
